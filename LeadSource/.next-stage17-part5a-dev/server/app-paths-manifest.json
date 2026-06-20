@@ -1,0 +1,5 @@
+{
+  "/settings/page": "app/settings/page.js",
+  "/domain-guard/page": "app/domain-guard/page.js",
+  "/sending-queue/page": "app/sending-queue/page.js"
+}

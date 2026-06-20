@@ -1,0 +1,51 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next-audit/types/**/*.ts",
+    ".next-build/types/**/*.ts",
+    ".next-current/types/**/*.ts",
+    ".next-stage12-provider/types/**/*.ts",
+    ".next-stage12/types/**/*.ts",
+    ".next-stage14-part2/types/**/*.ts",
+    ".next-stage14-part3/types/**/*.ts",
+    ".next-stage15-domain-guard/types/**/*.ts",
+    ".next-stage15-live-gate/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-stage16-qa/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "LeadSource"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/unsubscribe/route": "/unsubscribe",
+  "/[slug]/page": "/[slug]",
+  "/page": "/",
+  "/ai-lead-scoring/page": "/ai-lead-scoring",
+  "/email-verification/page": "/email-verification",
+  "/ghl-sync/page": "/ghl-sync",
+  "/leads/page": "/leads",
+  "/import-csv/page": "/import-csv",
+  "/domain-guard/page": "/domain-guard",
+  "/campaigns/page": "/campaigns",
+  "/sending-queue/page": "/sending-queue",
+  "/lead-discovery/page": "/lead-discovery",
+  "/replies/page": "/replies",
+  "/settings/page": "/settings"
+}

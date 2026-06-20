@@ -1,0 +1,17 @@
+{
+  "/unsubscribe/route": "app/unsubscribe/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/[slug]/page": "app/[slug]/page.js",
+  "/page": "app/page.js",
+  "/ai-lead-scoring/page": "app/ai-lead-scoring/page.js",
+  "/email-verification/page": "app/email-verification/page.js",
+  "/ghl-sync/page": "app/ghl-sync/page.js",
+  "/domain-guard/page": "app/domain-guard/page.js",
+  "/lead-discovery/page": "app/lead-discovery/page.js",
+  "/leads/page": "app/leads/page.js",
+  "/replies/page": "app/replies/page.js",
+  "/sending-queue/page": "app/sending-queue/page.js",
+  "/campaigns/page": "app/campaigns/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/import-csv/page": "app/import-csv/page.js"
+}

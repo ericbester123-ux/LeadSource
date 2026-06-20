@@ -1,0 +1,455 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  role      String     @default("Admin")
+  auditLogs AuditLog[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Lead {
+  id                      String               @id @default(cuid())
+  firstName               String?
+  lastName                String?
+  fullName                String?
+  email                   String               @unique
+  phone                   String?
+  companyName             String
+  website                 String?
+  location                String?
+  city                    String?
+  stateRegion             String?
+  country                 String
+  industry                String?
+  niche                   String?
+  sourceUrl               String?
+  sourcePlatform          String?
+  publicProfileUrl        String?
+  contactPageUrl          String?
+  socialLinks             String?
+  dateDiscovered          DateTime             @default(now())
+  discoveryQuery          String?
+  confidenceScore         Int?
+  personalisationNote     String?
+  contactType             String               @default("Unknown")
+  status                  String               @default("Discovered")
+  tags                    String?
+  notes                   String?
+  doNotContact            Boolean              @default(false)
+  unsubscribed            Boolean              @default(false)
+  bounced                 Boolean              @default(false)
+  ghlSyncStatus           String               @default("Not Ready")
+  ghlContactId            String?
+  ghlOpportunityId        String?
+  ghlLastSyncedAt         DateTime?
+  ghlSyncError            String?
+  lastContactedAt         DateTime?
+  nextFollowUpAt          DateTime?
+  manuallyApproved        Boolean              @default(false)
+  lawfulBasisNotes        String?
+  legitimateInterestNotes String?
+  leadSourceId            String?
+  leadSource              LeadSource?          @relation(fields: [leadSourceId], references: [id])
+  discoveryRunId          String?
+  discoveryRun            LeadDiscoveryRun?    @relation(fields: [discoveryRunId], references: [id])
+  leadScore               LeadScore?
+  emailVerification       EmailVerification?   @relation("LeadEmailVerification")
+  complianceCheck         ComplianceCheck?
+  campaignEnrollments     CampaignEnrollment[]
+  sendingQueueItems       SendingQueueItem[]
+  emailSendLogs           EmailSendLog[]
+  outreachActivities      OutreachActivity[]
+  replies                 Reply[]
+  bookings                Booking[]
+  ghlSyncLogs             GHLSyncLog[]
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+}
+
+model LeadSource {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  provider    String?
+  description String?
+  leads       Lead[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LeadDiscoveryRun {
+  id             String   @id @default(cuid())
+  query          String
+  country        String?
+  city           String?
+  region         String?
+  state          String?
+  industry       String?
+  niche          String?
+  keywords       String?
+  companyType    String?
+  minLeadScore   Int?
+  maxLeadsPerDay Int      @default(50)
+  provider       String   @default("mock")
+  status         String   @default("Completed")
+  leadsFound     Int      @default(0)
+  leads          Lead[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model LeadScore {
+  id                       String   @id @default(cuid())
+  leadId                   String   @unique
+  lead                     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  score                    Int
+  qualityLabel             String
+  reasonForScore           String?
+  suggestedPainPoint       String?
+  suggestedOfferAngle      String?
+  suggestedSubjectLine     String?
+  suggestedFirstEmail      String?
+  recommendedCampaign      String?
+  complianceRiskNotes      String?
+  personalisationFirstLine String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model EmailVerification {
+  id               String    @id @default(cuid())
+  leadId           String    @unique
+  lead             Lead      @relation("LeadEmailVerification", fields: [leadId], references: [id], onDelete: Cascade)
+  status           String    @default("Not Checked")
+  provider         String    @default("local")
+  resultDetails    String?
+  manuallyApproved Boolean   @default(false)
+  verifiedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model ComplianceCheck {
+  id                     String    @id @default(cuid())
+  leadId                 String    @unique
+  lead                   Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  status                 String    @default("Pending Review")
+  countryProfile         String?
+  riskLevel              String?
+  sourceUrlPresent       Boolean   @default(false)
+  lawfulBasisPresent     Boolean   @default(false)
+  unsubscribeRequired    Boolean   @default(true)
+  manualApprovalRequired Boolean   @default(false)
+  notes                  String?
+  checkedAt              DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+model Campaign {
+  id                              String               @id @default(cuid())
+  name                            String
+  mode                            String               @default("Review Required")
+  pauseReason                     String?
+  pausedBy                        String?
+  pausedAt                        DateTime?
+  targetCountry                   String?
+  targetLocations                 String?
+  targetIndustry                  String?
+  targetNiche                     String?
+  offer                           String?
+  minimumLeadScore                Int                  @default(75)
+  maxLeadsDiscoveredPerDay        Int                  @default(50)
+  maxEmailsSentPerDay             Int                  @default(20)
+  sendingWindowStart              String               @default("09:00")
+  sendingWindowEnd                String               @default("15:30")
+  sendingDays                     String               @default("Monday-Friday")
+  requireManualApprovalBeforeSend Boolean              @default(true)
+  autoEnrollLeads                 Boolean              @default(false)
+  stopOnReply                     Boolean              @default(true)
+  stopOnBooking                   Boolean              @default(true)
+  stopOnUnsubscribe               Boolean              @default(true)
+  stopOnBounce                    Boolean              @default(true)
+  syncInterestedLeadsToGhl        Boolean              @default(true)
+  syncBookedLeadsToGhl            Boolean              @default(true)
+  steps                           CampaignStep[]
+  enrollments                     CampaignEnrollment[]
+  templates                       EmailTemplate[]
+  queueItems                      SendingQueueItem[]
+  emailSendLogs                   EmailSendLog[]
+  replies                         Reply[]
+  createdAt                       DateTime             @default(now())
+  updatedAt                       DateTime             @updatedAt
+}
+
+model CampaignStep {
+  id         String             @id @default(cuid())
+  campaignId String
+  campaign   Campaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  stepNumber Int
+  name       String
+  delayDays  Int
+  subject    String
+  body       String
+  queueItems SendingQueueItem[]
+  sendLogs   EmailSendLog[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}
+
+model CampaignEnrollment {
+  id          String    @id @default(cuid())
+  campaignId  String
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadId      String
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  status      String    @default("Ready for Review")
+  currentStep Int       @default(1)
+  approvedAt  DateTime?
+  stoppedAt   DateTime?
+  stopReason  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([campaignId, leadId])
+}
+
+model EmailTemplate {
+  id         String             @id @default(cuid())
+  campaignId String?
+  campaign   Campaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  name       String
+  subject    String
+  body       String
+  stepNumber Int?
+  mergeTags  String?
+  queueItems SendingQueueItem[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}
+
+model SendingInbox {
+  id            String             @id @default(cuid())
+  name          String
+  email         String             @unique
+  provider      String             @default("SMTP")
+  fromName      String?
+  dailyLimit    Int                @default(20)
+  isActive      Boolean            @default(true)
+  warmupMode    Boolean            @default(true)
+  sendingDomain String?
+  queueItems    SendingQueueItem[]
+  sendLogs      EmailSendLog[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model SendingQueueItem {
+  id                String         @id @default(cuid())
+  leadId            String
+  lead              Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaignId        String
+  campaign          Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignStepId    String?
+  campaignStep      CampaignStep?  @relation(fields: [campaignStepId], references: [id], onDelete: SetNull)
+  emailTemplateId   String?
+  emailTemplate     EmailTemplate? @relation(fields: [emailTemplateId], references: [id], onDelete: SetNull)
+  inboxId           String?
+  inbox             SendingInbox?  @relation(fields: [inboxId], references: [id], onDelete: SetNull)
+  stepNumber        Int
+  recipientEmail    String
+  subject           String
+  body              String
+  status            String         @default("Ready for Review")
+  scheduledFor      DateTime?
+  approvedAt        DateTime?
+  sentAt            DateTime?
+  failureReason     String?
+  skippedReason     String?
+  skipReason        String?
+  providerMessageId String?
+  retryCount        Int            @default(0)
+  sendLogs          EmailSendLog[]
+  replies           Reply[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([leadId, campaignId, stepNumber])
+}
+
+model EmailSendLog {
+  id                 String            @id @default(cuid())
+  leadId             String
+  lead               Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaignId         String?
+  campaign           Campaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  campaignStepId     String?
+  campaignStep       CampaignStep?     @relation(fields: [campaignStepId], references: [id], onDelete: SetNull)
+  sendingQueueItemId String?
+  sendingQueueItem   SendingQueueItem? @relation(fields: [sendingQueueItemId], references: [id], onDelete: SetNull)
+  inboxId            String?
+  inbox              SendingInbox?     @relation(fields: [inboxId], references: [id], onDelete: SetNull)
+  provider           String            @default("simulation")
+  providerMessageId  String?
+  recipientEmail     String            @default("")
+  subject            String
+  body               String
+  status             String
+  simulated          Boolean           @default(true)
+  failureReason      String?
+  errorMessage       String?
+  metadata           String?
+  sentAt             DateTime?
+  replies            Reply[]
+  createdAt          DateTime          @default(now())
+}
+
+model OutreachActivity {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String
+  summary   String
+  metadata  String?
+  createdAt DateTime @default(now())
+}
+
+model Reply {
+  id                 String            @id @default(cuid())
+  leadId             String
+  lead               Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaignId         String?
+  campaign           Campaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  sendingQueueItemId String?
+  sendingQueueItem   SendingQueueItem? @relation(fields: [sendingQueueItemId], references: [id], onDelete: SetNull)
+  emailSendLogId     String?
+  emailSendLog       EmailSendLog?     @relation(fields: [emailSendLogId], references: [id], onDelete: SetNull)
+  repliedAt          DateTime          @default(now())
+  replyStatus        String            @default("No Reply")
+  replySentiment     String?
+  replySummary       String?
+  rawReplyBody       String?
+  manualNotes        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+model Booking {
+  id           String   @id @default(cuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  bookedAt     DateTime
+  calendarLink String?
+  status       String   @default("Booked")
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SuppressionListEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String
+  notes     String?
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Settings {
+  id                        String   @id @default(cuid())
+  key                       String   @unique
+  value                     String
+  description               String?
+  simulateEmailSending      Boolean  @default(true)
+  reviewRequired            Boolean  @default(true)
+  dailyLimitPerInbox        Int      @default(20)
+  emailVerificationRequired Boolean  @default(true)
+  complianceCheckRequired   Boolean  @default(true)
+  unsubscribeLinkRequired   Boolean  @default(true)
+  suppressionListActive     Boolean  @default(true)
+  doNotContactLogicActive   Boolean  @default(true)
+  auditLogsEnabled          Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model IntegrationConfig {
+  id        String   @id @default(cuid())
+  provider  String
+  name      String
+  isEnabled Boolean  @default(false)
+  config    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DomainReputationCheck {
+  id                             String    @id @default(cuid())
+  sendingDomain                  String
+  spfConfigured                  Boolean   @default(false)
+  dkimConfigured                 Boolean   @default(false)
+  dmarcConfigured                Boolean   @default(false)
+  customTrackingDomainConfigured Boolean   @default(false)
+  dedicatedSendingDomain         Boolean   @default(false)
+  businessAddressAdded           Boolean   @default(false)
+  unsubscribeLinkEnabled         Boolean   @default(true)
+  emailVerificationEnabled       Boolean   @default(true)
+  sendingLimitsConfigured        Boolean   @default(true)
+  suppressionListActive          Boolean   @default(true)
+  complianceChecksActive         Boolean   @default(true)
+  dailyLimitPerInbox             Int       @default(20)
+  sendingDays                    String    @default("Monday-Friday")
+  sendingWindowStart             String    @default("09:00")
+  sendingWindowEnd               String    @default("15:30")
+  warmupMode                     Boolean   @default(true)
+  simulationMode                 Boolean   @default(true)
+  liveSendingAllowed             Boolean   @default(false)
+  liveSendingEnabledAt           DateTime?
+  liveSendingEnabledBy           String?
+  lastGateCheckAt                DateTime?
+  lastGateBlockReason            String?
+  bounceThreshold                Float     @default(0.03)
+  complaintThreshold             Float     @default(0.01)
+  unsubscribeThreshold           Float     @default(0.03)
+  status                         String    @default("Needs Review")
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
+}
+
+model GHLSyncLog {
+  id               String    @id @default(cuid())
+  leadId           String
+  lead             Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  syncStatus       String    @default("Not Ready")
+  ghlContactId     String?
+  ghlOpportunityId String?
+  payload          String?
+  response         String?
+  error            String?
+  syncedAt         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  reason     String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+}

@@ -1,0 +1,23 @@
+export const defaultSafetySettings = {
+  senderName: "Eric",
+  agencyName: "Estates Elevate",
+  websiteUrl: "https://estateselevate.com",
+  calendarBookingLink: "https://estateselevate.com/book",
+  businessAddress: "",
+  defaultTargetCountries: "United Kingdom, United States",
+  defaultIndustry: "Real Estate",
+  emailSignature: "Kind regards,\nEric\nEstates Elevate\nhttps://estateselevate.com",
+  sendingDomain: "estateselevate.com",
+  simulateEmailSending: true,
+  reviewRequired: true,
+  dailyLimitPerInbox: 20,
+  sendingWindow: "09:00-15:30",
+  sendingDays: "Monday-Friday",
+  warmupMode: true,
+  emailVerificationRequired: true,
+  complianceCheckRequired: true,
+  unsubscribeLinkRequired: true,
+  suppressionListActive: true,
+  auditLogsEnabled: true,
+  complianceDisclaimerAcknowledged: true
+};
