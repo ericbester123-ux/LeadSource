@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { writeAudit } from "@/lib/audit";
-import { localEmailSyntaxCheck } from "@/lib/email-verification/localEmailSyntaxCheck";
+import { verifyEmailAddress } from "@/lib/email-verification/emailVerificationProvider";
+
+const localVerificationRequiredMessage = "Local syntax check passed. Real provider verification required.";
 
 function ids(formData: FormData) {
   return formData.getAll("leadIds").filter((id): id is string => typeof id === "string" && Boolean(id));
@@ -12,12 +14,12 @@ function ids(formData: FormData) {
 async function verifyLead(leadId: string) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) return;
-  const result = localEmailSyntaxCheck(lead.email, lead.bounced);
+  const result = await verifyEmailAddress(lead.email, lead.bounced);
   await prisma.emailVerification.upsert({
     where: { leadId },
     update: {
       status: result.status,
-      provider: "local",
+      provider: result.provider,
       resultDetails: result.details,
       verifiedAt: new Date(),
       manuallyApproved: false
@@ -25,15 +27,20 @@ async function verifyLead(leadId: string) {
     create: {
       leadId,
       status: result.status,
-      provider: "local",
+      provider: result.provider,
       resultDetails: result.details,
       verifiedAt: new Date()
     }
   });
-  if (result.status === "Valid") {
+  if (result.status === "Valid" && ["zerobounce", "neverbounce"].includes(result.provider)) {
     await prisma.lead.update({ where: { id: leadId }, data: { status: "Verified" } });
   }
-  await writeAudit("Email verified", "EmailVerification", leadId, "Local syntax verification completed", result);
+  await writeAudit("Email verified", "EmailVerification", leadId, `Email verification completed with ${result.provider}`, {
+    status: result.status,
+    provider: result.provider,
+    details: result.details,
+    warning: result.warning
+  });
 }
 
 export async function verifySelectedLeads(formData: FormData) {
@@ -59,6 +66,30 @@ export async function verifyAllUnverifiedLeads() {
   }
   revalidatePath("/email-verification");
   revalidatePath("/leads");
+}
+
+export async function repairLocalValidVerifications() {
+  const records = await prisma.emailVerification.findMany({
+    where: { provider: "local", status: "Valid" },
+    select: { id: true, leadId: true }
+  });
+
+  await prisma.emailVerification.updateMany({
+    where: { provider: "local", status: "Valid" },
+    data: {
+      status: "Unknown",
+      resultDetails: localVerificationRequiredMessage,
+      manuallyApproved: false
+    }
+  });
+
+  await writeAudit("Email verification local-valid repaired", "EmailVerification", undefined, "Local Valid records changed to Unknown", {
+    count: records.length,
+    leadIds: records.map((record) => record.leadId)
+  });
+  revalidatePath("/email-verification");
+  revalidatePath("/leads");
+  revalidatePath("/sending-queue");
 }
 
 export async function overrideVerification(formData: FormData) {

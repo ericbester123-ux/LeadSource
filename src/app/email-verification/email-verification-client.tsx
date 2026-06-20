@@ -10,7 +10,8 @@ import { Table, TableWrap } from "@/components/ui/table";
 import { verificationStatuses } from "@/lib/constants";
 import { VerificationLeadWithInclude } from "@/lib/lead-include";
 import { csvEscape, formatDate } from "@/lib/lead-utils";
-import { overrideVerification, verifyAllUnverifiedLeads, verifySelectedLeads } from "./actions";
+import type { EmailVerificationProviderStatus } from "@/lib/email-verification/emailVerificationProvider";
+import { overrideVerification, repairLocalValidVerifications, verifyAllUnverifiedLeads, verifySelectedLeads } from "./actions";
 
 type VerificationLead = VerificationLeadWithInclude;
 
@@ -18,7 +19,7 @@ function statusFor(lead: VerificationLead) {
   return lead.emailVerification?.status ?? "Not Checked";
 }
 
-export function EmailVerificationClient({ leads }: { leads: VerificationLead[] }) {
+export function EmailVerificationClient({ leads, providerStatus }: { leads: VerificationLead[]; providerStatus: EmailVerificationProviderStatus }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [query, setQuery] = useState("");
@@ -66,13 +67,32 @@ export function EmailVerificationClient({ leads }: { leads: VerificationLead[] }
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h2 className="text-2xl font-semibold">Email Verification</h2>
-          <p className="mt-1 text-sm text-neutral-600">Local syntax checks now, provider placeholders ready for NeverBounce, ZeroBounce, and DeBounce.</p>
+          <p className="mt-1 text-sm text-neutral-600">Verify deliverability with the configured provider and block unsafe local-only results from sending.</p>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="secondary" onClick={exportCsv}><Download className="h-4 w-4" /> Export results</Button>
           <form action={verifyAllUnverifiedLeads}><Button><FileCheck2 className="h-4 w-4" /> Verify all unverified</Button></form>
         </div>
       </div>
+
+      <Card>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Badge tone={providerStatus.activeProvider === "local" ? "gold" : "green"}>Active provider: {providerStatus.activeProvider}</Badge>
+          <Badge tone={providerStatus.zeroBounceConfigured ? "green" : "red"}>ZeroBounce {providerStatus.zeroBounceConfigured ? "configured" : "missing"}</Badge>
+          <Badge tone={providerStatus.neverBounceConfigured ? "green" : "red"}>NeverBounce {providerStatus.neverBounceConfigured ? "configured" : "missing"}</Badge>
+          <Badge tone={providerStatus.localFallbackActive ? "gold" : "green"}>Local fallback {providerStatus.localFallbackActive ? "active" : "inactive"}</Badge>
+        </div>
+        {providerStatus.warning && (
+          <div className="rounded-md border border-gold-200 bg-gold-50 p-4 text-sm leading-6 text-gold-900">
+            {providerStatus.warning}
+          </div>
+        )}
+        {providerStatus.activeProvider === "local" && (
+          <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">
+            Local check only validates email format. It does not confirm deliverability.
+          </div>
+        )}
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-4"><div className="text-xs text-neutral-500">Not checked</div><div className="mt-1 text-2xl font-semibold">{groups.notChecked}</div></Card>
@@ -90,13 +110,16 @@ export function EmailVerificationClient({ leads }: { leads: VerificationLead[] }
         </div>
       </Card>
 
-      <form action={verifySelectedLeads}>
+      <form id="verify-selected-form" action={verifySelectedLeads}>
         {selected.map((id) => <input key={id} type="hidden" name="leadIds" value={id} />)}
-        <Card className="mb-4 flex flex-wrap items-center gap-2">
-          <Badge tone="black">{selected.length} selected</Badge>
-          <Button variant="secondary" disabled={!selected.length}><FileCheck2 className="h-4 w-4" /> Verify selected</Button>
-        </Card>
       </form>
+      <Card className="mb-4 flex flex-wrap items-center gap-2">
+        <Badge tone="black">{selected.length} selected</Badge>
+        <Button form="verify-selected-form" variant="secondary" disabled={!selected.length}><FileCheck2 className="h-4 w-4" /> Force reverify selected</Button>
+        <form action={repairLocalValidVerifications}>
+          <Button type="submit" variant="ghost">Repair local Valid records</Button>
+        </form>
+      </Card>
 
       <TableWrap>
         <div className="max-h-[68vh] overflow-auto">

@@ -3,6 +3,7 @@ import { defaultSendingWindow, SendingQueueItemWithInclude } from "@/lib/sending
 import { validateRenderedEmail } from "./emailRenderService";
 import { hasSmtpCredentials } from "./smtpEmailProvider";
 import { checkLiveSendingGate } from "@/lib/domain-guard/liveSendingGate";
+import { isQueueSafeEmailVerification } from "@/lib/email-verification/emailVerificationProvider";
 
 export type SafetyResult = {
   ok: boolean;
@@ -42,6 +43,7 @@ export async function checkQueueItemSafety(item: SendingQueueItemWithInclude): P
   const reasons: string[] = [];
   const lead = item.lead;
   const verification = lead.emailVerification?.status ?? "Not Checked";
+  const verificationProvider = lead.emailVerification?.provider ?? "local";
   const compliance = lead.complianceCheck?.status ?? "Pending Review";
   const rendered = validateRenderedEmail(item.subject, item.body);
 
@@ -56,8 +58,12 @@ export async function checkQueueItemSafety(item: SendingQueueItemWithInclude): P
   if (lead.bookings.length > 0) reasons.push("Lead has a booking; follow-ups must stop.");
   if (item.campaign.mode === "Paused") reasons.push(item.campaign.pauseReason ?? "Campaign is paused.");
   if (verification === "Invalid") reasons.push("Email verification is invalid.");
-  if (["Risky", "Unknown", "Catch-All", "Not Checked"].includes(verification) && !lead.emailVerification?.manuallyApproved) {
-    reasons.push(`Email verification requires manual approval: ${verification}.`);
+  if (!isQueueSafeEmailVerification(lead.emailVerification)) {
+    if (verification === "Valid") {
+      reasons.push(`Email verification must be Valid from ZeroBounce or NeverBounce. Current provider: ${verificationProvider}.`);
+    } else {
+      reasons.push(`Email verification requires real provider Valid status or manual approval: ${verification}.`);
+    }
   }
   if (compliance !== "Passed") reasons.push(`Compliance check required before sending: ${compliance}.`);
   if ((lead.leadScore?.score ?? 0) < item.campaign.minimumLeadScore && !lead.manuallyApproved) {

@@ -7,6 +7,7 @@ import { hasRequiredIdentity, renderTemplate } from "@/lib/email-render";
 import { processDueQueue } from "@/lib/email-sending/emailQueueProcessor";
 import { applyCampaignProtection } from "@/lib/domain-guard/domainReputationGuard";
 import { isValidEmail } from "@/lib/lead-utils";
+import { isQueueSafeEmailVerification } from "@/lib/email-verification/emailVerificationProvider";
 import type { QueueBlockCategory, QueueGenerationBlockedLead, QueueGenerationState } from "./state";
 import { emptyQueueGenerationState } from "./state";
 
@@ -98,9 +99,14 @@ async function checkQueueEligibility(enrollment: Awaited<ReturnType<typeof getAp
   if (campaign.mode === "Paused") reasons.push(campaign.pauseReason ?? "Campaign is paused.");
 
   const verification = lead.emailVerification?.status ?? "Not Checked";
+  const verificationProvider = lead.emailVerification?.provider ?? "local";
   if (verification === "Invalid") reasons.push("Email verification is invalid.");
-  if (["Risky", "Unknown", "Catch-All", "Not Checked"].includes(verification) && !lead.emailVerification?.manuallyApproved) {
-    reasons.push(`Email verification requires manual approval: ${verification}.`);
+  if (!isQueueSafeEmailVerification(lead.emailVerification)) {
+    if (verification === "Valid") {
+      reasons.push(`Email verification must be Valid from ZeroBounce or NeverBounce. Current provider: ${verificationProvider}.`);
+    } else {
+      reasons.push(`Email verification requires real provider Valid status or manual approval: ${verification}.`);
+    }
   }
 
   const compliance = lead.complianceCheck?.status ?? "Pending Review";

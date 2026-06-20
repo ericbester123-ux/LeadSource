@@ -126,6 +126,15 @@ const leads = [
 ];
 
 async function main() {
+  await prisma.emailVerification.updateMany({
+    where: { provider: "local", status: "Valid" },
+    data: {
+      status: "Unknown",
+      resultDetails: "Local syntax check passed. Real provider verification required.",
+      manuallyApproved: false
+    }
+  });
+
   const user = await prisma.user.upsert({
     where: { email: "admin@estateselevate.com" },
     update: {},
@@ -284,16 +293,16 @@ async function main() {
       where: { leadId: lead.id },
       update: {
         status: "Valid",
-        provider: "local",
-        resultDetails: "Syntax check passed for seed data.",
+        provider: "zerobounce",
+        resultDetails: "Seeded deliverability-valid test record for simulated queue workflow.",
         manuallyApproved: false,
         verifiedAt: new Date()
       },
       create: {
         leadId: lead.id,
         status: "Valid",
-        provider: "local",
-        resultDetails: "Syntax check passed for seed data.",
+        provider: "zerobounce",
+        resultDetails: "Seeded deliverability-valid test record for simulated queue workflow.",
         verifiedAt: new Date()
       }
     });

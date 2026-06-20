@@ -9,6 +9,7 @@ import { validateGhlConfig } from "@/lib/ghl/ghlConfigValidator";
 import { getOrCreateDomainGuard } from "@/lib/domain-guard/domainReputationGuard";
 import { evaluateLiveSendingGate } from "@/lib/domain-guard/liveSendingGate";
 import { prisma } from "@/lib/prisma";
+import { getEmailVerificationProviderStatus } from "@/lib/email-verification/emailVerificationProvider";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function SettingsPage() {
   const simulate = process.env.SIMULATE_EMAIL_SENDING !== "false";
   const provider = process.env.EMAIL_PROVIDER ?? "smtp";
   const ghl = validateGhlConfig();
+  const verificationProvider = getEmailVerificationProviderStatus();
   const guard = await getOrCreateDomainGuard();
   const liveGate = evaluateLiveSendingGate(guard);
   const recentAuditCount = await prisma.auditLog.count();
@@ -164,6 +166,34 @@ export default async function SettingsPage() {
               ["Resend", process.env.RESEND_API_KEY ? "Configured" : "Placeholder"],
               ["Instantly", process.env.INSTANTLY_API_KEY ? "Configured" : "Placeholder"],
               ["Smartlead", process.env.SMARTLEAD_API_KEY ? "Configured" : "Placeholder"]
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-md border border-black/10 p-3 text-sm">
+                <div className="text-xs uppercase text-neutral-500">{label}</div>
+                <div className="mt-1 font-medium">{value}</div>
+              </div>
+            ))}
+          </div>
+        </FormSection>
+
+        <FormSection title="Email Verification Provider" description="Deliverability provider status. API keys are never displayed.">
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Badge tone={verificationProvider.activeProvider === "local" ? "gold" : "green"}>Active provider: {verificationProvider.activeProvider}</Badge>
+            <Badge tone={verificationProvider.zeroBounceConfigured ? "green" : "red"}>ZeroBounce key {verificationProvider.zeroBounceConfigured ? "configured" : "missing"}</Badge>
+            <Badge tone={verificationProvider.neverBounceConfigured ? "green" : "red"}>NeverBounce key {verificationProvider.neverBounceConfigured ? "configured" : "missing"}</Badge>
+            <Badge tone={verificationProvider.localFallbackActive ? "gold" : "green"}>Local fallback {verificationProvider.localFallbackActive ? "active" : "inactive"}</Badge>
+          </div>
+          {verificationProvider.warning && (
+            <div className="mb-4 rounded-md border border-gold-200 bg-gold-50 p-4 text-sm leading-6 text-gold-900">
+              {verificationProvider.warning}
+            </div>
+          )}
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              ["EMAIL_VERIFICATION_PROVIDER", verificationProvider.requestedProvider || "local"],
+              ["ZeroBounce key", verificationProvider.zeroBounceConfigured ? "Configured" : "Missing"],
+              ["NeverBounce key", verificationProvider.neverBounceConfigured ? "Configured" : "Missing"],
+              ["Active provider", verificationProvider.activeProvider],
+              ["Local fallback", verificationProvider.localFallbackActive ? "Active" : "Inactive"]
             ].map(([label, value]) => (
               <div key={label} className="rounded-md border border-black/10 p-3 text-sm">
                 <div className="text-xs uppercase text-neutral-500">{label}</div>

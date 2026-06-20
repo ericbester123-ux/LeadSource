@@ -15,5 +15,5 @@ export function localEmailSyntaxCheck(email: string, bounced = false): EmailVeri
   if (email.startsWith("admin@") || email.startsWith("support@")) {
     return { status: "Unknown", details: "Generic role address accepted syntactically but needs context review." };
   }
-  return { status: "Valid", details: "Local syntax check passed." };
+  return { status: "Unknown", details: "Local syntax check passed. Real provider verification required." };
 }

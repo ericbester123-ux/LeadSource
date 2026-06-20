@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { buildFullName, isValidEmail, qualityFromScore } from "@/lib/lead-utils";
+import { verifyEmailAddress } from "@/lib/email-verification/emailVerificationProvider";
 
 function value(formData: FormData, key: string) {
   const raw = formData.get(key);
@@ -240,14 +241,16 @@ export async function bulkLeadAction(formData: FormData) {
   }
 
   if (action === "verify") {
-    for (const id of ids) {
+    const leads = await prisma.lead.findMany({ where: { id: { in: ids } }, select: { id: true, email: true, bounced: true } });
+    for (const lead of leads) {
+      const result = await verifyEmailAddress(lead.email, lead.bounced);
       await prisma.emailVerification.upsert({
-        where: { leadId: id },
-        update: { status: "Valid", provider: "placeholder", verifiedAt: new Date() },
-        create: { leadId: id, status: "Valid", provider: "placeholder", verifiedAt: new Date() }
+        where: { leadId: lead.id },
+        update: { status: result.status, provider: result.provider, resultDetails: result.details, manuallyApproved: false, verifiedAt: new Date() },
+        create: { leadId: lead.id, status: result.status, provider: result.provider, resultDetails: result.details, verifiedAt: new Date() }
       });
     }
-    await writeAudit("Bulk verify placeholder", "EmailVerification", undefined, "Placeholder verification applied", { ids });
+    await writeAudit("Bulk email verification", "EmailVerification", undefined, "Bulk verification applied with configured provider", { ids });
   }
 
   if (action === "score") {
